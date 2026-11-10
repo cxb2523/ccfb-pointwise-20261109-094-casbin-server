@@ -45,6 +45,16 @@ func NewServer() *Server {
 	return &s
 }
 
+// getEnforcer resolves a handle to its enforcer instance.
+//
+// Locking granularity: the RLock only guards the map lookup itself. The lock
+// is released before the caller invokes any enforcer method, so a slow policy
+// operation never blocks concurrent lookups or registrations on other
+// handles. The returned pointer stays valid after the lock is dropped because
+// enforcers are never removed from the map for the lifetime of the server
+// (there is no unload path), and the casbin.Enforcer synchronizes its own
+// internal state. If an unload API is ever added, it must synchronize against
+// in-flight users of the instance, e.g. with per-enforcer refcounting.
 func (s *Server) getEnforcer(handle int) (*casbin.Enforcer, error) {
 	s.muE.RLock()
 	defer s.muE.RUnlock()
